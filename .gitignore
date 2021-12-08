@@ -4,6 +4,7 @@ build/
 tags
 .DS_Store
 Makefile
+.idea/
 node_modules/
 examples/node/svgdump/
 examples/node/pdf2png/*.png

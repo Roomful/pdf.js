@@ -14,54 +14,12 @@
  */
 /* globals PDFBug, Stats */
 
-import {
-  animationStarted,
-  apiPageLayoutToViewerModes,
-  apiPageModeToSidebarView,
-  AutomationEventBus,
-  AutoPrintRegExp,
-  DEFAULT_SCALE_VALUE,
-  EventBus,
-  getActiveOrFocusedElement,
-  isValidRotation,
-  isValidScrollMode,
-  isValidSpreadMode,
-  noContextMenuHandler,
-  normalizeWheelEventDirection,
-  parseQueryString,
-  ProgressBar,
-  RendererType,
-  ScrollMode,
-  SidebarView,
-  SpreadMode,
-  TextLayerMode,
-} from "./ui_utils.js";
+import { build, createPromiseCapability, getDocument, getFilenameFromUrl, getPdfFilenameFromUrl, GlobalWorkerOptions, InvalidPDFException, isPdfFile, LinkTarget, loadScript, MissingPDFException, OPS, PDFWorker, PermissionFlag, shadow, UnexpectedResponseException, UNSUPPORTED_FEATURES, version } from "pdfjs-lib";
 import { AppOptions, compatibilityParams, OptionKind } from "./app_options.js";
-import {
-  build,
-  createPromiseCapability,
-  getDocument,
-  getFilenameFromUrl,
-  getPdfFilenameFromUrl,
-  GlobalWorkerOptions,
-  InvalidPDFException,
-  isPdfFile,
-  LinkTarget,
-  loadScript,
-  MissingPDFException,
-  OPS,
-  PDFWorker,
-  PermissionFlag,
-  shadow,
-  UnexpectedResponseException,
-  UNSUPPORTED_FEATURES,
-  version,
-} from "pdfjs-lib";
-import { CursorTool, PDFCursorTools } from "./pdf_cursor_tools.js";
-import { PDFRenderingQueue, RenderingStates } from "./pdf_rendering_queue.js";
 import { OverlayManager } from "./overlay_manager.js";
 import { PasswordPrompt } from "./password_prompt.js";
 import { PDFAttachmentViewer } from "./pdf_attachment_viewer.js";
+import { CursorTool, PDFCursorTools } from "./pdf_cursor_tools.js";
 import { PDFDocumentProperties } from "./pdf_document_properties.js";
 import { PDFFindBar } from "./pdf_find_bar.js";
 import { PDFFindController } from "./pdf_find_controller.js";
@@ -70,6 +28,7 @@ import { PDFLayerViewer } from "./pdf_layer_viewer.js";
 import { PDFLinkService } from "./pdf_link_service.js";
 import { PDFOutlineViewer } from "./pdf_outline_viewer.js";
 import { PDFPresentationMode } from "./pdf_presentation_mode.js";
+import { PDFRenderingQueue, RenderingStates } from "./pdf_rendering_queue.js";
 import { PDFScriptingManager } from "./pdf_scripting_manager.js";
 import { PDFSidebar } from "./pdf_sidebar.js";
 import { PDFSidebarResizer } from "./pdf_sidebar_resizer.js";
@@ -77,6 +36,7 @@ import { PDFThumbnailViewer } from "./pdf_thumbnail_viewer.js";
 import { PDFViewer } from "./pdf_viewer.js";
 import { SecondaryToolbar } from "./secondary_toolbar.js";
 import { Toolbar } from "./toolbar.js";
+import { animationStarted, apiPageLayoutToViewerModes, apiPageModeToSidebarView, AutomationEventBus, AutoPrintRegExp, DEFAULT_SCALE_VALUE, EventBus, getActiveOrFocusedElement, isValidRotation, isValidScrollMode, isValidSpreadMode, noContextMenuHandler, normalizeWheelEventDirection, parseQueryString, ProgressBar, RendererType, ScrollMode, SidebarView, SpreadMode, TextLayerMode } from "./ui_utils.js";
 import { ViewHistory } from "./view_history.js";
 
 const DISABLE_AUTO_FETCH_LOADING_BAR_TIMEOUT = 5000; // ms
@@ -1532,6 +1492,15 @@ const PDFViewerApplication = {
     }
     this.documentInfo = info;
     this.metadata = metadata;
+    this._contentDispositionFilename =
+      this._contentDispositionFilename !== null &&
+      this._contentDispositionFilename !== undefined
+        ? this._contentDispositionFilename
+        : contentDispositionFilename;
+    this._contentLength =
+      this._contentLength !== null && this._contentLength !== undefined
+        ? this._contentLength
+        : contentLength;
     this._contentDispositionFilename ??= contentDispositionFilename;
     this._contentLength ??= contentLength; // See `getDownloadInfo`-call above.
 
@@ -1911,6 +1880,7 @@ const PDFViewerApplication = {
     eventBus._on("hashchange", webViewerHashchange);
     eventBus._on("beforeprint", _boundEvents.beforePrint);
     eventBus._on("afterprint", _boundEvents.afterPrint);
+    eventBus._on("pagesloaded", webViewerPagesLoaded);
     eventBus._on("pagerendered", webViewerPageRendered);
     eventBus._on("updateviewarea", webViewerUpdateViewarea);
     eventBus._on("pagechanging", webViewerPageChanging);
@@ -2006,6 +1976,7 @@ const PDFViewerApplication = {
     eventBus._off("hashchange", webViewerHashchange);
     eventBus._off("beforeprint", _boundEvents.beforePrint);
     eventBus._off("afterprint", _boundEvents.afterPrint);
+    eventBus._off("pagesloaded", webViewerPagesLoaded);
     eventBus._off("pagerendered", webViewerPageRendered);
     eventBus._off("updateviewarea", webViewerUpdateViewarea);
     eventBus._off("pagechanging", webViewerPageChanging);
@@ -2138,8 +2109,11 @@ let validateFileURL;
 if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
   const HOSTED_VIEWER_ORIGINS = [
     "null",
-    "http://mozilla.github.io",
-    "https://mozilla.github.io",
+    "http://localhost:3000",
+    "http://pdf.roomful.net",
+    "https://pdf.roomful.net",
+    "http://api.roomful.net",
+    "https://api.roomful.net",
   ];
   validateFileURL = function (file) {
     if (file === undefined) {
@@ -2158,6 +2132,11 @@ if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
       // IE10 / IE11 does not include an origin in `blob:`-URLs. So don't block
       // any blob:-URL. The browser's same-origin policy will block requests to
       // blob:-URLs from other origins, so this is safe.
+
+      if (HOSTED_VIEWER_ORIGINS.includes(origin)) {
+        return;
+      }
+
       if (origin !== viewerOrigin && protocol !== "blob:") {
         throw new Error("file origin does not match viewer's");
       }
@@ -2335,6 +2314,17 @@ function webViewerResetPermissions() {
   }
   // Currently only the "copy"-permission is supported.
   appConfig.viewerContainer.classList.remove(ENABLE_PERMISSIONS_CLASS);
+}
+
+function webViewerPagesLoaded(evt) {
+  // roomful
+  if (
+    PDFViewerApplication &&
+    window.resourcePageStartNumber !== undefined &&
+    PDFViewerApplication.page !== window.resourcePageStartNumber
+  ) {
+    PDFViewerApplication.page = window.resourcePageStartNumber;
+  }
 }
 
 function webViewerPageRendered({ pageNumber, error }) {
@@ -2678,6 +2668,13 @@ function webViewerRotationChanging(evt) {
 }
 
 function webViewerPageChanging({ pageNumber, pageLabel }) {
+  if (
+    window.resourcePageChanged !== undefined &&
+    window.resourcePageChanged !== null
+  ) {
+    window.resourcePageChanged(pageNumber);
+  }
+
   PDFViewerApplication.toolbar.setPageNumber(pageNumber, pageLabel);
   PDFViewerApplication.secondaryToolbar.setPageNumber(pageNumber);
 

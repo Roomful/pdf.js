@@ -245,6 +245,10 @@ function createWebpackConfig(
         "pdfjs-web": path.join(__dirname, "web"),
         "pdfjs-lib": path.join(__dirname, "web/pdfjs"),
       },
+      fallback: {
+        "crypto": false, // require.resolve("crypto-browserify"),
+        "stream": false, // require.resolve("stream-browserify"),
+      },
     },
     devtool: enableSourceMaps ? "source-map" : undefined,
     module: {
@@ -838,9 +842,9 @@ function buildGeneric(defines, dir) {
       .pipe(postcss([calc(), autoprefixer(AUTOPREFIXER_CONFIG)]))
       .pipe(gulp.dest(dir + "web")),
 
-    gulp
-      .src("web/compressed.tracemonkey-pldi-09.pdf")
-      .pipe(gulp.dest(dir + "web")),
+    // gulp
+    //   .src("web/compressed.tracemonkey-pldi-09.pdf")
+    //   .pipe(gulp.dest(dir + "web")),
   ]);
 }
 
@@ -1004,9 +1008,9 @@ function buildMinified(defines, dir) {
       .pipe(postcss([calc(), autoprefixer(AUTOPREFIXER_CONFIG)]))
       .pipe(gulp.dest(dir + "web")),
 
-    gulp
-      .src("web/compressed.tracemonkey-pldi-09.pdf")
-      .pipe(gulp.dest(dir + "web")),
+    // gulp
+    //   .src("web/compressed.tracemonkey-pldi-09.pdf")
+    //   .pipe(gulp.dest(dir + "web")),
   ]);
 }
 
@@ -1901,7 +1905,7 @@ gulp.task(
 
       const WebServer = require("./test/webserver.js").WebServer;
       const server = new WebServer();
-      server.port = 8888;
+      server.port = 3000;
       server.start();
     }
   )

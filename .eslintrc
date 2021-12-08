@@ -1,7 +1,7 @@
 {
   "parserOptions": {
     "ecmaVersion": 2022,
-    "sourceType": "module",
+    "sourceType": "module"
   },
 
   "plugins": [
@@ -10,7 +10,7 @@
     "mozilla",
     "no-unsanitized",
     "sort-exports",
-    "unicorn",
+    "unicorn"
   ],
 
   "extends": [
@@ -22,18 +22,18 @@
     "browser": true,
     "es2021": true,
     "worker": true,
-    "amd": true,
+    "amd": true
   },
 
   "globals": {
     "PDFJSDev": false,
     "exports": false,
-    "SystemJS": false,
+    "SystemJS": false
   },
 
   "rules": {
     // Plugins
-    "import/extensions": ["error", "always", { "ignorePackages": true, }],
+    "import/extensions": ["error", "always", { "ignorePackages": true }],
     "import/no-unresolved": ["error", {
       "ignore": ["pdfjs", "pdfjs-lib", "pdfjs-web"]
     }],
@@ -42,7 +42,7 @@
     "no-unsanitized/method": "error",
     "no-unsanitized/property": "error",
     "sort-exports/sort-exports": ["error", {
-      "ignoreCase": true,
+      "ignoreCase": true
     }],
     "unicorn/no-abusive-eslint-disable": "error",
     "unicorn/no-array-push-push": "error",
@@ -58,13 +58,13 @@
     "getter-return": "error",
     "no-async-promise-executor": "error",
     "no-cond-assign": ["error", "except-parens"],
-    "no-constant-condition": ["error", { "checkLoops": false, }],
+    "no-constant-condition": ["error", { "checkLoops": false }],
     "no-debugger": "error",
     "no-dupe-args": "error",
     "no-dupe-else-if": "error",
     "no-dupe-keys": "error",
     "no-duplicate-case": "error",
-    "no-empty": ["error", { "allowEmptyCatch": true, }],
+    "no-empty": ["error", { "allowEmptyCatch": true }],
     "no-empty-character-class": "error",
     "no-ex-assign": "error",
     "no-extra-boolean-cast": "error",
@@ -85,13 +85,13 @@
     "no-unsafe-negation": "error",
     "no-unsafe-optional-chaining": ["error", { "disallowArithmeticOperators": true }],
     "no-unused-private-class-members": "error",
-    "use-isnan": ["error", { "enforceForIndexOf": true, }],
-    "valid-typeof": ["error", { "requireStringLiterals": true, }],
+    "use-isnan": ["error", { "enforceForIndexOf": true }],
+    "valid-typeof": ["error", { "requireStringLiterals": true }],
 
     // Best Practices
     "accessor-pairs": ["error", {
       "setWithoutGet": true,
-      "enforceForClassMembers": true,
+      "enforceForClassMembers": true
     }],
     "consistent-return": "error",
     "curly": ["error", "all"],
@@ -134,7 +134,7 @@
     "prefer-promise-reject-errors": "error",
     "wrap-iife": ["error", "any"],
     "yoda": ["error", "never", {
-      "exceptRange": true,
+      "exceptRange": true
     }],
 
     // Strict Mode
@@ -146,15 +146,15 @@
     "no-shadow": "error",
     "no-shadow-restricted-names": "error",
     "no-undef-init": "error",
-    "no-undef": ["error", { "typeof": true, }],
+    "no-undef": ["error", { "typeof": true }],
     "no-unused-vars": ["error", {
       "vars": "local",
-      "args": "none",
+      "args": "none"
     }],
     "no-use-before-define": ["error", {
       "functions": false,
       "classes": false,
-      "variables": false,
+      "variables": false
     }],
 
     // Stylistic Issues
@@ -164,39 +164,39 @@
       "comments": 80,
       "ignoreUrls": true
     }],
-    "new-cap": ["error", { "newIsCap": true, "capIsNew": false, }],
+    "new-cap": ["error", { "newIsCap": true, "capIsNew": false }],
     "no-array-constructor": "error",
-    "no-multiple-empty-lines": ["error", { "max": 1, "maxEOF": 0, "maxBOF": 1, }],
+    "no-multiple-empty-lines": ["error", { "max": 1, "maxEOF": 0, "maxBOF": 1 }],
     "no-nested-ternary": "error",
     "no-new-object": "error",
     "no-restricted-syntax": ["error",
       {
         "selector": "BinaryExpression[operator='instanceof'][right.name='Object']",
-        "message": "Use `typeof` rather than `instanceof Object`.",
+        "message": "Use `typeof` rather than `instanceof Object`."
       },
       {
         "selector": "CallExpression[callee.name='assert'][arguments.length!=2]",
-        "message": "`assert()` must always be invoked with two arguments.",
+        "message": "`assert()` must always be invoked with two arguments."
       },
       {
         "selector": "NewExpression[callee.name='Cmd']",
-        "message": "Use `Cmd.get()` rather than `new Cmd()`.",
+        "message": "Use `Cmd.get()` rather than `new Cmd()`."
       },
       {
         "selector": "NewExpression[callee.name='Name']",
-        "message": "Use `Name.get()` rather than `new Name()`.",
+        "message": "Use `Name.get()` rather than `new Name()`."
       },
       {
         "selector": "NewExpression[callee.name='Ref']",
-        "message": "Use `Ref.get()` rather than `new Ref()`.",
-      },
+        "message": "Use `Ref.get()` rather than `new Ref()`."
+      }
     ],
     "no-unneeded-ternary": "error",
     "operator-assignment": "error",
     "prefer-exponentiation-operator": "error",
     "spaced-comment": ["error", "always", {
       "block": {
-        "balanced": true,
+        "balanced": true
       }
     }],
 
@@ -213,12 +213,12 @@
     "no-useless-rename": "error",
     "no-var": "error",
     "object-shorthand": ["error", "always", {
-      "avoidQuotes": true,
+      "avoidQuotes": true
     }],
     "prefer-const": "error",
     "sort-imports": ["error", {
-      "ignoreCase": true,
+      "ignoreCase": true
     }],
-    "template-curly-spacing": ["error", "never"],
-  },
+    "template-curly-spacing": ["error", "never"]
+  }
 }
