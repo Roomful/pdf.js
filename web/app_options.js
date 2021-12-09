@@ -427,7 +427,7 @@ if (root !== undefined) {
     let isPresent = _urlParams.get("present") || 0;
     let sessionId = _urlParams.get("session");
 
-    url = "https://api.roomful.net/api/v0/resource/" + resourceId + "?sessionId=" + sessionId;
+    url = "https://api.roomful.net/api/v0/resource/url/" + resourceId + "?sessionId=" + sessionId;
 
     let _findSelectionNodesByElements = function($parent, $anchor, $focus, fixNestedIndex = 0) {
       let anchorNodeIndex = -1, focusNodeIndex = -1;
@@ -1097,6 +1097,7 @@ const defaultOptions = {
     kind: OptionKind.WORKER,
   },
 };
+
 if (
   typeof PDFJSDev === "undefined" ||
   PDFJSDev.test("!PRODUCTION || GENERIC")

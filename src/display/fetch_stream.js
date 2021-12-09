@@ -13,17 +13,8 @@
  * limitations under the License.
  */
 
-import {
-  AbortException,
-  assert,
-  createPromiseCapability,
-} from "../shared/util.js";
-import {
-  createResponseStatusError,
-  extractFilenameFromHeader,
-  validateRangeRequestCapabilities,
-  validateResponseStatus,
-} from "./network_utils.js";
+import { AbortException, assert, createPromiseCapability } from "../shared/util.js";
+import { createResponseStatusError, extractFilenameFromHeader, validateRangeRequestCapabilities, validateResponseStatus } from "./network_utils.js";
 
 if (typeof PDFJSDev !== "undefined" && PDFJSDev.test("MOZCENTRAL")) {
   throw new Error(
@@ -123,45 +114,50 @@ class PDFFetchStreamReader {
     this._headers = createHeaders(this._stream.httpHeaders);
 
     const url = source.url;
-    fetch(
-      url,
-      createFetchOptions(
-        this._headers,
-        this._withCredentials,
-        this._abortController
-      )
-    )
-      .then(response => {
-        if (!validateResponseStatus(response.status)) {
-          throw createResponseStatusError(response.status, url);
-        }
-        this._reader = response.body.getReader();
-        this._headersCapability.resolve();
+    fetch(url, {
+      mode: "cors"
+    }).then(response => response.text())
+      .then(url => {
+        fetch(
+          url,
+          createFetchOptions(
+            this._headers,
+            this._withCredentials,
+            this._abortController,
+          ),
+        )
+          .then(response => {
+            if (!validateResponseStatus(response.status)) {
+              throw createResponseStatusError(response.status, url);
+            }
+            this._reader = response.body.getReader();
+            this._headersCapability.resolve();
 
-        const getResponseHeader = name => {
-          return response.headers.get(name);
-        };
-        const { allowRangeRequests, suggestedLength } =
-          validateRangeRequestCapabilities({
-            getResponseHeader,
-            isHttp: this._stream.isHttp,
-            rangeChunkSize: this._rangeChunkSize,
-            disableRange: this._disableRange,
-          });
+            const getResponseHeader = name => {
+              return response.headers.get(name);
+            };
+            const { allowRangeRequests, suggestedLength } =
+              validateRangeRequestCapabilities({
+                getResponseHeader,
+                isHttp: this._stream.isHttp,
+                rangeChunkSize: this._rangeChunkSize,
+                disableRange: this._disableRange,
+              });
 
-        this._isRangeSupported = allowRangeRequests;
-        // Setting right content length.
-        this._contentLength = suggestedLength || this._contentLength;
+            this._isRangeSupported = allowRangeRequests;
+            // Setting right content length.
+            this._contentLength = suggestedLength || this._contentLength;
 
-        this._filename = extractFilenameFromHeader(getResponseHeader);
+            this._filename = extractFilenameFromHeader(getResponseHeader);
 
-        // We need to stop reading when range is supported and streaming is
-        // disabled.
-        if (!this._isStreamingSupported && this._isRangeSupported) {
-          this.cancel(new AbortException("Streaming is disabled."));
-        }
-      })
-      .catch(this._headersCapability.reject);
+            // We need to stop reading when range is supported and streaming is
+            // disabled.
+            if (!this._isStreamingSupported && this._isRangeSupported) {
+              this.cancel(new AbortException("Streaming is disabled."));
+            }
+          })
+          .catch(this._headersCapability.reject);
+      }).catch(this._headersCapability.reject);
 
     this.onProgress = null;
   }
@@ -232,22 +228,27 @@ class PDFFetchStreamRangeReader {
     this._headers.append("Range", `bytes=${begin}-${end - 1}`);
 
     const url = source.url;
-    fetch(
-      url,
-      createFetchOptions(
-        this._headers,
-        this._withCredentials,
-        this._abortController
-      )
-    )
-      .then(response => {
-        if (!validateResponseStatus(response.status)) {
-          throw createResponseStatusError(response.status, url);
-        }
-        this._readCapability.resolve();
-        this._reader = response.body.getReader();
-      })
-      .catch(this._readCapability.reject);
+    fetch(url, {
+      mode: "cors",
+    }).then(response => response.text())
+      .then(url => {
+        fetch(
+          url,
+          createFetchOptions(
+            this._headers,
+            this._withCredentials,
+            this._abortController,
+          ),
+        )
+          .then(response => {
+            if (!validateResponseStatus(response.status)) {
+              throw createResponseStatusError(response.status, url);
+            }
+            this._readCapability.resolve();
+            this._reader = response.body.getReader();
+          })
+          .catch(this._readCapability.reject);
+      }).catch(this._readCapability.reject);
 
     this.onProgress = null;
   }
