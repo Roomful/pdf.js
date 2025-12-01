@@ -1736,6 +1736,15 @@ const PDFViewerApplication = {
     });
     this.documentInfo = info;
     this.metadata = metadata;
+    this._contentDispositionFilename =
+      this._contentDispositionFilename !== null &&
+      this._contentDispositionFilename !== undefined
+        ? this._contentDispositionFilename
+        : contentDispositionFilename;
+    this._contentLength =
+      this._contentLength !== null && this._contentLength !== undefined
+        ? this._contentLength
+        : contentLength;
     this._contentDispositionFilename ??= contentDispositionFilename;
     this._contentLength ??= contentLength; // See `getDownloadInfo`-call above.
 
@@ -2071,6 +2080,7 @@ const PDFViewerApplication = {
     eventBus._on("hashchange", onHashchange.bind(this), opts);
     eventBus._on("beforeprint", this.beforePrint.bind(this), opts);
     eventBus._on("afterprint", this.afterPrint.bind(this), opts);
+    eventBus._on("pagesloaded", webViewerPagesLoaded.bind(this), opts);
     eventBus._on("pagerender", onPageRender.bind(this), opts);
     eventBus._on("pagerendered", onPageRendered.bind(this), opts);
     eventBus._on("updateviewarea", onUpdateViewarea.bind(this), opts);
@@ -2417,8 +2427,15 @@ if (typeof PDFJSDev === "undefined" || !PDFJSDev.test("MOZCENTRAL")) {
 if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
   const HOSTED_VIEWER_ORIGINS = new Set([
     "null",
-    "http://mozilla.github.io",
-    "https://mozilla.github.io",
+    "http://10.0.0.88:8080",
+    "http://127.0.0.1:8080",
+    "http://localhost:3005",
+    "http://localhost:3000",
+    "http://pdf.roomful.net",
+    "https://pdf.roomful.net",
+    "http://api.roomful.net",
+    "https://api.roomful.net",
+    "https://pdf.texpo.io"
   ]);
   // eslint-disable-next-line no-var
   var validateFileURL = function (file) {
@@ -2469,6 +2486,16 @@ function onPageRender({ pageNumber }) {
   // ensure that the page number input loading indicator is displayed.
   if (pageNumber === this.page) {
     this.toolbar?.updateLoadingIndicatorState(true);
+  }
+}
+
+function webViewerPagesLoaded() {
+  if (
+    PDFViewerApplication &&
+    window.resourcePageStartNumber !== undefined &&
+    PDFViewerApplication.page !== window.resourcePageStartNumber
+  ) {
+    PDFViewerApplication.page = window.resourcePageStartNumber;
   }
 }
 
@@ -2710,6 +2737,13 @@ function onRotationChanging(evt) {
 }
 
 function onPageChanging({ pageNumber, pageLabel }) {
+  if (
+    window.resourcePageChanged !== undefined &&
+    window.resourcePageChanged !== null
+  ) {
+    window.resourcePageChanged(pageNumber);
+  }
+
   this.toolbar?.setPageNumber(pageNumber, pageLabel);
   this.secondaryToolbar?.setPageNumber(pageNumber);
 

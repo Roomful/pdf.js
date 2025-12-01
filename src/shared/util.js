@@ -532,6 +532,12 @@ class InvalidPDFException extends BaseException {
   }
 }
 
+class MissingPDFException extends BaseException {
+  constructor(msg) {
+    super(msg, "MissingPDFException");
+  }
+}
+
 class ResponseException extends BaseException {
   constructor(msg, status, missing) {
     super(msg, "ResponseException");
@@ -1360,6 +1366,7 @@ export {
   PasswordResponses,
   PermissionFlag,
   RenderingIntentFlag,
+  MissingPDFException,
   ResponseException,
   setVerbosityLevel,
   shadow,

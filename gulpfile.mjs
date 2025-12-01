@@ -1136,10 +1136,6 @@ function buildGeneric(defines, dir) {
         ])
       )
       .pipe(gulp.dest(dir + "web")),
-
-    gulp
-      .src("web/compressed.tracemonkey-pldi-09.pdf", { encoding: false })
-      .pipe(gulp.dest(dir + "web")),
   ]);
 }
 
@@ -2200,7 +2196,7 @@ gulp.task(
       console.log();
       console.log("### Starting local server");
 
-      let port = 8888;
+      let port = 3000;
       const i = process.argv.indexOf("--port");
       if (i >= 0 && i + 1 < process.argv.length) {
         const p = parseInt(process.argv[i + 1], 10);

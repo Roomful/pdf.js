@@ -13,6 +13,8 @@
  * limitations under the License.
  */
 
+import { valuBootstrap } from "./valu_bootstrap.js";
+
 if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
   // eslint-disable-next-line no-var
   var compatParams = new Map();
@@ -69,6 +71,8 @@ const Type = {
   STRING: 0x08,
   UNDEFINED: 0x10,
 };
+
+const targetUrl = valuBootstrap();
 
 /**
  * NOTE: These options are used to generate the `default_preferences.json` file,
@@ -546,7 +550,7 @@ if (typeof PDFJSDev === "undefined" || !PDFJSDev.test("MOZCENTRAL")) {
     value:
       typeof PDFJSDev !== "undefined" && PDFJSDev.test("CHROME")
         ? ""
-        : "compressed.tracemonkey-pldi-09.pdf",
+        : targetUrl,
     kind: OptionKind.VIEWER,
   };
   defaultOptions.sandboxBundleSrc = {

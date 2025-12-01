@@ -13,7 +13,11 @@
  * limitations under the License.
  */
 
-import { assert, ResponseException } from "../shared/util.js";
+import {
+  assert,
+  MissingPDFException,
+  ResponseException,
+} from "../shared/util.js";
 import { getFilenameFromContentDispositionHeader } from "./content_disposition.js";
 import { isPdfFile } from "./display_utils.js";
 
@@ -107,6 +111,16 @@ function createResponseError(status, url) {
   );
 }
 
+function createResponseStatusError(status, url) {
+  if (status === 404 || (status === 0 && url.startsWith("file:"))) {
+    return new MissingPDFException('Missing PDF "' + url + '".');
+  }
+  return new ResponseException(
+    `Unexpected server response (${status}) while retrieving PDF "${url}".`,
+    status
+  );
+}
+
 function validateResponseStatus(status) {
   return status === 200 || status === 206;
 }
@@ -114,6 +128,7 @@ function validateResponseStatus(status) {
 export {
   createHeaders,
   createResponseError,
+  createResponseStatusError,
   extractFilenameFromHeader,
   getResponseOrigin,
   validateRangeRequestCapabilities,
