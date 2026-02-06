@@ -2425,11 +2425,32 @@ class AnnotationEditorUIManager {
    */
   addCommands(params) {
     this.#commandManager.add(params);
-    this.#dispatchUpdateStates({
+    const details = {
       hasSomethingToUndo: true,
       hasSomethingToRedo: false,
       isEmpty: this.#isEmpty(),
-    });
+    };
+
+    // VALU-SYNC: Force event dispatch for DRAW_STEP commands.
+    //
+    // Problem: The normal #dispatchUpdateStates() only fires when state actually
+    // changes (hasSomethingToUndo, hasSomethingToRedo, isEmpty). During continuous
+    // drawing, these don't change after the first stroke, so no events fire.
+    //
+    // Solution: For DRAW_STEP, we always dispatch the event and include the
+    // inProgressDrawing data (SVG path, color, etc.) so viewers can render
+    // the drawing in real-time as the presenter draws.
+    if (params.type === AnnotationEditorParamsType.DRAW_STEP) {
+      Object.assign(this.#previousStates, details);
+      this._eventBus.dispatch("annotationeditorstateschanged", {
+        source: this,
+        details: this.#previousStates,
+        inProgressDrawing: params.inProgressDrawing || null,
+      });
+    } else {
+      // VALU-SYNC: end of modified block - normal path for non-drawing commands
+      this.#dispatchUpdateStates(details);
+    }
   }
 
   cleanUndoStack(type) {

@@ -126,6 +126,18 @@ function findSelectionIndicesDFS($parent) {
     if (!node) return;
     if (anchorNodeIndex !== -1 && focusNodeIndex !== -1) return;
 
+    // VALU-SYNC: Skip elements marked with data-valu-sync-ignore attribute.
+    //
+    // Problem: FreeText overlays contain text nodes that would be counted
+    // in the DFS traversal, throwing off selection indices between presenter
+    // and viewer (presenter has no overlays, viewer has them).
+    //
+    // Solution: Mark overlay elements with data-valu-sync-ignore="true"
+    // and skip them entirely during traversal.
+    if (node.nodeType === Node.ELEMENT_NODE && node.dataset?.valuSyncIgnore) {
+      return;
+    }
+
     if (node.nodeType === Node.TEXT_NODE) {
       if (node === startResolved.node) anchorNodeIndex = index;
       if (node === endResolved.node)   focusNodeIndex  = index;
@@ -163,6 +175,11 @@ function _findSelectionNodesByIndex($parent, anchorNodeIndex, focusNodeIndex) {
   function dfs(node) {
     if (!node) return;
     if ($anchor && $focus) return;
+
+    // VALU-SYNC: Skip overlay elements (same reason as in findSelectionIndicesDFS)
+    if (node.nodeType === Node.ELEMENT_NODE && node.dataset?.valuSyncIgnore) {
+      return;
+    }
 
     if (node.nodeType === Node.TEXT_NODE) {
       if (index === anchorNodeIndex) $anchor = node;

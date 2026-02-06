@@ -854,6 +854,31 @@ class DrawingEditor extends AnnotationEditor {
       const draw = DrawingEditor.#currentDraw;
       const drawId = this._currentDrawId;
       const lastElement = draw.getLastElement();
+
+      // VALU-SYNC: Build in-progress drawing snapshot for real-time sync.
+      //
+      // Why this is needed:
+      // - Drawings aren't committed to annotationStorage until complete
+      // - Viewers need to see the drawing as it's being created
+      // - We capture the SVG path and styling at each stroke end
+      //
+      // The snapshot is passed through addCommands() -> tools.js -> eventBus,
+      // where valu_bootstrap.js picks it up and sends to viewers.
+      let inProgressDrawing = null;
+      const snapshotData = draw.getSnapshotData?.();
+      if (snapshotData) {
+        const drawingOptions = DrawingEditor.#currentDrawingOptions;
+        inProgressDrawing = {
+          pageIndex: parent.pageIndex,
+          svgPath: snapshotData.svgPath,
+          thickness: snapshotData.thickness,
+          color: drawingOptions.stroke,
+          opacity: drawingOptions["stroke-opacity"],
+          isInProgress: true,  // Flag so viewers render as overlay, not editor
+        };
+      }
+      // VALU-SYNC: end of snapshot building
+
       parent.addCommands({
         cmd: () => {
           parent.drawLayer.updateProperties(
@@ -866,6 +891,7 @@ class DrawingEditor extends AnnotationEditor {
         },
         mustExec: false,
         type: AnnotationEditorParamsType.DRAW_STEP,
+        inProgressDrawing, // VALU-SYNC: pass to event handler
       });
 
       return;

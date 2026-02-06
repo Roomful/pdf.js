@@ -266,6 +266,30 @@ class InkDrawOutliner {
     return this.#outlines;
   }
 
+  /**
+   * VALU-SYNC: Get a snapshot of current drawing data for real-time sync.
+   *
+   * Why not use getOutlines()?
+   * - getOutlines() is destructive: it resets internal state (#lines = null)
+   * - It's designed for final serialization when drawing is complete
+   * - We need non-destructive access during drawing for real-time sync
+   *
+   * This method safely reads the current SVG path and thickness without
+   * affecting the ongoing drawing operation.
+   *
+   * @returns {Object|null} - {svgPath, thickness} or null if no drawing
+   */
+  getSnapshotData() {
+    if (!this.#lines || this.#lines.length === 0) {
+      return null;
+    }
+
+    return {
+      svgPath: this.#lastSVGPath || "",
+      thickness: this.#thickness,
+    };
+  }
+
   get defaultSVGProperties() {
     return {
       root: {

@@ -1204,6 +1204,15 @@ class AnnotationEditor {
   }
 
   get comment() {
+    // VALU-SYNC: Guard against null #comment.
+    //
+    // When syncing annotations from presenter to viewer, editors are created
+    // via deserialize() and added to the layer. During certain operations
+    // (like mode switches or serialization), this getter may be called before
+    // #comment is initialized. Without this check, destructuring null crashes.
+    if (!this.#comment) {
+      return null;
+    }
     const {
       data: { richText, text, date, deleted },
     } = this.#comment;
