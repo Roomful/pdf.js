@@ -586,10 +586,8 @@ function valuBootstrap() {
       let videoChatId = _urlParams.get("videoChat");
       let roomId = _urlParams.get("room");
       let propId = _urlParams.get("prop");
-      let resourceId =
-        _urlParams.get("resource") || "188e582a-be3d-8af1-b19d-6090c8fbe60a";
-      let sessionId =
-        _urlParams.get("session") || "188aa8ff-23e9-8eb9-a28b-a4fd97eca342";
+      let resourceId = _urlParams.get("resource") || "";
+      let sessionId = _urlParams.get("session") || "";
 
       url = "https://api.roomful.net/api/v0/resource/url/" + resourceId + "?sessionId=" + sessionId;
 
