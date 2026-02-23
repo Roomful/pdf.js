@@ -307,6 +307,16 @@ class FreeTextEditor extends AnnotationEditor {
       return false;
     }
 
+    // VALU-SYNC: Dispatch freeTextStarted here (not in onceAdded) so it fires
+    // for both new annotations and double-click re-edits of existing ones.
+    // super.enableEditMode() guards against re-entry so this fires exactly once
+    // per edit session.
+    this._uiManager._eventBus.dispatch("annotationactivity", {
+      source: this,
+      activityType: "freeTextStarted",
+      page: this.pageIndex + 1,
+    });
+
     this.overlayDiv.classList.remove("enabled");
     this.editorDiv.contentEditable = true;
     this._isDraggable = false;
@@ -477,6 +487,13 @@ class FreeTextEditor extends AnnotationEditor {
 
     super.commit();
     this.disableEditMode();
+
+    // VALU-SYNC: Dispatch freeTextEnded activity event
+    this._uiManager._eventBus.dispatch("annotationactivity", {
+      source: this,
+      activityType: "freeTextEnded",
+      page: this.pageIndex + 1,
+    });
     const savedText = this.#content;
     const newText = (this.#content = this.#extractText().trimEnd());
     if (savedText === newText) {

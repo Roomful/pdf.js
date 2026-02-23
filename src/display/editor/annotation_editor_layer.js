@@ -485,7 +485,8 @@ class AnnotationEditorLayer {
       HighlightEditor.startHighlighting(
         this,
         this.#uiManager.direction === "ltr",
-        { target: this.#textLayer.div, x: event.x, y: event.y }
+        { target: this.#textLayer.div, x: event.x, y: event.y },
+        this.#uiManager  // VALU-SYNC: for activity event dispatch
       );
       this.#textLayer.div.addEventListener(
         "pointerup",
@@ -496,6 +497,27 @@ class AnnotationEditorLayer {
         { once: true, signal: this.#uiManager._signal }
       );
       event.preventDefault();
+    } else {
+      // VALU-SYNC: Text-selection highlight — user clicked on a text span, not the
+      // layer background. Mirror the free-highlight pattern: highlightStarted on
+      // pointerdown, highlightEnded on pointerup — exactly once, whether or not
+      // text was actually selected.
+      this.#uiManager._eventBus.dispatch("annotationactivity", {
+        source: this,
+        activityType: "highlightStarted",
+        page: this.pageIndex + 1,
+      });
+      window.addEventListener(
+        "pointerup",
+        () => {
+          this.#uiManager._eventBus.dispatch("annotationactivity", {
+            source: this,
+            activityType: "highlightEnded",
+            page: this.pageIndex + 1,
+          });
+        },
+        { once: true, signal: this.#uiManager._signal }
+      );
     }
   }
 

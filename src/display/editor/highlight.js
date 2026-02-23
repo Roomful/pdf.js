@@ -88,6 +88,9 @@ class HighlightEditor extends AnnotationEditor {
 
   static _freeHighlightClipId = "";
 
+  // VALU-SYNC: Store uiManager so #endHighlight can dispatch activity events
+  static #currentUiManager = null;
+
   static get _keyboardManager() {
     const proto = HighlightEditor.prototype;
     return shadow(
@@ -790,7 +793,7 @@ class HighlightEditor extends AnnotationEditor {
     return this.#highlightOutlines.serialize(rect, this.#getRotation());
   }
 
-  static startHighlighting(parent, isLTR, { target: textLayer, x, y }) {
+  static startHighlighting(parent, isLTR, { target: textLayer, x, y }, uiManager = null) {
     const {
       x: layerX,
       y: layerY,
@@ -851,6 +854,16 @@ class HighlightEditor extends AnnotationEditor {
         /* isPathUpdatable = */ true,
         /* hasClip = */ true
       ));
+
+    // VALU-SYNC: Store uiManager and dispatch highlightStarted activity event
+    HighlightEditor.#currentUiManager = uiManager;
+    if (uiManager) {
+      uiManager._eventBus.dispatch("annotationactivity", {
+        source: this,
+        activityType: "highlightStarted",
+        page: parent.pageIndex + 1,
+      });
+    }
   }
 
   static #highlightMove(parent, event) {
@@ -865,6 +878,16 @@ class HighlightEditor extends AnnotationEditor {
   }
 
   static #endHighlight(parent, event) {
+    // VALU-SYNC: Dispatch highlightEnded activity event
+    if (HighlightEditor.#currentUiManager) {
+      HighlightEditor.#currentUiManager._eventBus.dispatch("annotationactivity", {
+        source: this,
+        activityType: "highlightEnded",
+        page: parent.pageIndex + 1,
+      });
+      HighlightEditor.#currentUiManager = null;
+    }
+
     if (!this._freeHighlight.isEmpty()) {
       parent.createAndAddNewEditor(event, false, {
         highlightId: this._freeHighlightId,

@@ -82,6 +82,9 @@ class DrawingEditor extends AnnotationEditor {
 
   static #currentDrawingOptions = null;
 
+  // VALU-SYNC: Store uiManager so endDrawing() can dispatch activity events
+  static #currentUiManager = null;
+
   static _INNER_MARGIN = 3;
 
   constructor(params) {
@@ -758,6 +761,16 @@ class DrawingEditor extends AnnotationEditor {
     parent.toggleDrawing();
     uiManager._editorUndoBar?.hide();
 
+    // VALU-SYNC: Dispatch drawingStarted on every stroke (pen down), not just the
+    // first. For multi-stroke (ink), the original early-return guard prevented
+    // subsequent strokes from reaching the old dispatch location.
+    DrawingEditor.#currentUiManager ||= uiManager; // store only on first stroke
+    uiManager._eventBus.dispatch("annotationactivity", {
+      source: this,
+      activityType: "drawingStarted",
+      page: parent.pageIndex + 1,
+    });
+
     if (DrawingEditor.#currentDraw) {
       parent.drawLayer.updateProperties(
         this._currentDrawId,
@@ -824,6 +837,8 @@ class DrawingEditor extends AnnotationEditor {
       this._currentParent = null;
       DrawingEditor.#currentDraw = null;
       DrawingEditor.#currentDrawingOptions = null;
+      // VALU-SYNC: Clear stored uiManager reference
+      DrawingEditor.#currentUiManager = null;
       CurrentPointers.clearPointerType();
       CurrentPointers.clearTimeStamp();
     }
@@ -879,6 +894,17 @@ class DrawingEditor extends AnnotationEditor {
       }
       // VALU-SYNC: end of snapshot building
 
+      // VALU-SYNC: Dispatch drawingEnded on each stroke completion (pen up).
+      // For multi-stroke (ink), endDrawing() is never called on pointerup —
+      // only when the session closes — so we dispatch here instead.
+      if (DrawingEditor.#currentUiManager) {
+        DrawingEditor.#currentUiManager._eventBus.dispatch("annotationactivity", {
+          source: this,
+          activityType: "drawingEnded",
+          page: parent.pageIndex + 1,
+        });
+      }
+
       parent.addCommands({
         cmd: () => {
           parent.drawLayer.updateProperties(
@@ -905,6 +931,16 @@ class DrawingEditor extends AnnotationEditor {
     if (!parent) {
       return null;
     }
+
+    // VALU-SYNC: Dispatch drawingEnded activity event
+    if (DrawingEditor.#currentUiManager) {
+      DrawingEditor.#currentUiManager._eventBus.dispatch("annotationactivity", {
+        source: this,
+        activityType: "drawingEnded",
+        page: parent.pageIndex + 1,
+      });
+    }
+
     parent.toggleDrawing(true);
     parent.cleanUndoStack(AnnotationEditorParamsType.DRAW_STEP);
 

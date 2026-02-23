@@ -59,7 +59,8 @@
  *       length: number,             // 0 = no selection
  *       annotations: Array,         // Serialized annotations
  *       annotationsHash: string,
- *       event: string               // What triggered this sync
+ *       event: string,              // What triggered this sync (see SYNC EVENTS)
+ *       activityAction: string|null // Presenter gesture (see SYNC EVENTS), null if none
  *     }
  *   }
  * }
@@ -82,6 +83,12 @@
  * - "textSelected"         User selected text
  * - "textSelectionCleared" User cleared text selection
  * - "annotationsChanged"   Annotation created/modified/deleted (debounced)
+ * - "drawingStarted"       Presenter began an ink/draw stroke
+ * - "drawingEnded"         Presenter finished an ink/draw stroke (carries new annotation)
+ * - "highlightStarted"     Presenter began a free highlight gesture
+ * - "highlightEnded"       Presenter finished a free highlight (carries new annotation)
+ * - "freeTextStarted"      Presenter opened a new text annotation box
+ * - "freeTextEnded"        Presenter committed a text annotation
  *
  * ============================================================================
  * ANNOTATION RENDERING STRATEGIES
@@ -120,6 +127,16 @@
  * src/display/editor/draw.js
  *   - Captures drawing snapshot in _endDraw() for real-time sync
  *   - Builds inProgressDrawing object with SVG path, color, etc.
+ *   - Dispatches "annotationactivity" events for drawingStarted/drawingEnded
+ *
+ * src/display/editor/highlight.js
+ *   - Dispatches "annotationactivity" events for highlightStarted/highlightEnded
+ *
+ * src/display/editor/annotation_editor_layer.js
+ *   - Passes uiManager to HighlightEditor.startHighlighting() for event dispatch
+ *
+ * src/display/editor/freetext.js
+ *   - Dispatches "annotationactivity" events for freeTextStarted/freeTextEnded
  *
  * src/display/editor/drawers/inkdraw.js
  *   - Added getSnapshotData() for non-destructive state access
@@ -618,30 +635,37 @@ function valuBootstrap() {
        * Sends current state to parent window.
        * Parent app decides who is presenting and forwards to viewers.
        */
-      let submitSyncState = function (event) {
+      let submitSyncState = function (event, activityAction = null) {
         // Always include fresh annotation data (with in-progress drawing if any)
         const { annotations, hash } = getSerializedAnnotations(root.currentInProgressDrawing);
         rawData.annotations = annotations;
         rawData.annotationsHash = hash;
         rawData.event = event;
 
+        // activityAction is spread fresh per-message, NOT stored in rawData,
+        // so it never leaks into subsequent non-activity syncs.
         window.parent.postMessage(
           {
             source: "valu-social-pdf-viewer",
             payload: {
               message: "syncFullState",
-              data: { ...rawData },
+              data: { ...rawData, activityAction },
             },
           },
           "*"
         );
       };
 
+      // Tracks the current presenter activity so intermediate annotationsChanged
+      // messages carry the same context (e.g. "drawingStarted" while drawing).
+      // Set on *Started, reset to null after sending *Ended.
+      let lastActivityAction = null;
+
       // Debounced version for annotation changes (300ms delay)
       // Prevents flooding during rapid changes like drawing strokes
       const debouncedAnnotationSync = debounce(() => {
         if (root.isApplyingRemoteState) return;
-        submitSyncState("annotationsChanged");
+        submitSyncState("annotationsChanged", lastActivityAction);
       }, 300);
 
       // ========================================================================
@@ -864,6 +888,22 @@ function valuBootstrap() {
               // Capture in-progress drawing for real-time sync during drawing
               root.currentInProgressDrawing = event.inProgressDrawing || null;
               debouncedAnnotationSync();
+            });
+
+            // VALU-SYNC: Forward presenter activity events as full state syncs.
+            // Using submitSyncState (not a separate message type) ensures late-joining
+            // viewers receive the complete current state alongside the activity signal.
+            // The rawData.event field tells the parent app what triggered this sync.
+            PDFViewerApplication.eventBus.on("annotationactivity", ({ activityType }) => {
+              if (root.isApplyingRemoteState) return;
+              // Persist the activity so intermediate annotationsChanged messages
+              // carry the same context. Reset to null after *Ended so subsequent
+              // idle messages don't carry stale activity state.
+              lastActivityAction = activityType;
+              submitSyncState("annotationsChanged", lastActivityAction);
+              if (activityType.endsWith("Ended")) {
+                lastActivityAction = null;
+              }
             });
 
             // Send initial sync when document is fully loaded
